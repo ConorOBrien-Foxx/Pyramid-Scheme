@@ -90,12 +90,15 @@ def str_to_val(str)
 end
 
 def falsey(val)
-    val == 0 or val == [] or val == ""
+    [0, [], "", $UNDEF, "\x00"].include? val
 end
 
 def truthy(val)
     !falsey val
 end
+
+class TrueClass;  def to_i; 1; end; end
+class FalseClass; def to_i; 0; end; end
 
 $outted = false
 
@@ -112,6 +115,11 @@ $uneval_ops = {
             break unless truthy eval_chain left
         }
         $UNDEF
+    },
+    # condition: left
+    # body: right
+    "?" => -> (left, right) {
+        truthy(eval_chain left) ? eval_chain(right) : 0
     }
 }
 
@@ -121,11 +129,16 @@ $ops = {
     "-" => -> (a, b) { a - b },
     "/" => -> (a, b) { 1.0 * a / b },
     "^" => -> (a, b) { a ** b },
-    "out" => -> (*a) { $outted = true; a.each { |e| print e } },
+    "=" => -> (a, b) { (a == b).to_i },
+    "<=>" => -> (a, b) { a <=> b },
+    "out" => -> (*a) { $outted = true; a.each { |e| print e }; },
     "chr" => -> (a) { a.to_i.chr },
     "arg" => -> (a) { ARGV[a] },
     "#" => -> (a) { str_to_val a },
     "" => -> (*a) { unwrap a },
+    "!" => -> (a) { falsey(a).to_i },
+    "[" => -> (a, b) { a },
+    "]" => -> (a, b) { b },
 }
 
 def eval_chain(chain)
@@ -155,5 +168,5 @@ prog = File.read(ARGV[0]).gsub(/\r/, "")
 parsed = parse(prog)
 res = parsed.map { |ch| eval_chain ch }
 res = res.is_a?(Array) && res.length == 1 ? res.pop : res
-res = res.reject { |e| e == $UNDEF }
+res = res.reject { |e| e == $UNDEF } if res.is_a? Array
 puts sanatize(res) unless $outted
