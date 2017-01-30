@@ -68,6 +68,9 @@ def triangle_from(lines, ptr_inds = nil)
     }
 end
 
+$vars = {}
+$UNDEF = :UNDEF
+
 def parse(str)
     # find ^s on first line
     lns = str.lines
@@ -77,14 +80,40 @@ end
 # converts a string to a pyramid value
 def str_to_val(str)
     # todo: expand
-    if str == "line" or str == "stdin" or str == "readline"
-        $stdin
+    if $vars.has_key? str
+        $vars[str]
+    elsif str == "line" or str == "stdin" or str == "readline"
+        $stdin.readline
     else
         str.to_f
     end
 end
 
+def falsey(val)
+    val == 0 or val == [] or val == ""
+end
+
+def truthy(val)
+    !falsey val
+end
+
 $outted = false
+
+$uneval_ops = {
+    "set" => -> (left, right) {
+        $vars[left] = eval_chain right
+        $UNDEF
+    },
+    # condition: left
+    # body: right
+    "do" => -> (left, right) {
+        loop {
+            eval_chain right
+            break unless truthy eval_chain left
+        }
+        $UNDEF
+    }
+}
 
 $ops = {
     "+" => -> (a, b) { a + b },
@@ -94,6 +123,8 @@ $ops = {
     "^" => -> (a, b) { a ** b },
     "out" => -> (*a) { $outted = true; a.each { |e| print e } },
     "chr" => -> (a) { a.to_i.chr },
+    "arg" => -> (a) { ARGV[a] },
+    "#" => -> (a) { str_to_val a },
     "" => -> (*a) { unwrap a },
 }
 
@@ -102,8 +133,11 @@ def eval_chain(chain)
         return str_to_val chain
     else
         op, args = chain
+        if $uneval_ops.has_key? op
+            return $uneval_ops[op][*args]
+        end
         raise "undefined operation `#{op}`" unless $ops.has_key? op
-        return $ops[op][*args.map { |ch| eval_chain ch }]
+        return sanatize $ops[op][*sanatize(args.map { |ch| eval_chain ch })]
     end
 end
 
@@ -119,10 +153,7 @@ end
 
 prog = File.read(ARGV[0]).gsub(/\r/, "")
 parsed = parse(prog)
-# puts prog
-# puts ""
-# p parsed
-# puts ""
 res = parsed.map { |ch| eval_chain ch }
 res = res.is_a?(Array) && res.length == 1 ? res.pop : res
+res = res.reject { |e| e == $UNDEF }
 puts sanatize(res) unless $outted
