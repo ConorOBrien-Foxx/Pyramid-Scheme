@@ -68,7 +68,7 @@ def triangle_from(lines, ptr_inds = nil)
     }
 end
 
-$vars = {}
+$vars = {"eps" => ""}
 $UNDEF = :UNDEF
 
 def parse(str)
@@ -83,14 +83,18 @@ def str_to_val(str)
     if $vars.has_key? str
         $vars[str]
     elsif str == "line" or str == "stdin" or str == "readline"
-        $stdin.readline
+        $stdin.gets
     else
         str.to_f
     end
 end
 
+def val_to_str(val)
+    sanatize(val).to_s
+end
+
 def falsey(val)
-    [0, [], "", $UNDEF, "\x00"].include? val
+    [0, [], "", $UNDEF, "\x00", nil].include? val
 end
 
 def truthy(val)
@@ -118,6 +122,15 @@ $uneval_ops = {
     },
     # condition: left
     # body: right
+    "loop" => -> (left, right) {
+        loop {
+            break unless truthy eval_chain left
+            eval_chain right
+        }
+        $UNDEF
+    },
+    # condition: left
+    # body: right
     "?" => -> (left, right) {
         truthy(eval_chain left) ? eval_chain(right) : 0
     }
@@ -135,6 +148,7 @@ $ops = {
     "chr" => -> (a) { a.to_i.chr },
     "arg" => -> (*a) { a.size == 1 ? ARGV[a] : a[0][a[1]] },
     "#" => -> (a) { str_to_val a },
+    "\"" => -> (a) { val_to_str a },
     "" => -> (*a) { unwrap a },
     "!" => -> (a) { falsey(a).to_i },
     "[" => -> (a, b) { a },
@@ -167,13 +181,15 @@ end
 prog = File.read(ARGV[0]).gsub(/\r/, "")
 parsed = parse(prog)
 res = parsed.map { |ch| eval_chain ch }
-res = res.is_a?(Array) && res.length == 1 ? res.pop : res
 res = res.reject { |e| e == $UNDEF } if res.is_a? Array
+res = res.is_a?(Array) && res.length == 1 ? res.pop : res
 to_print = sanatize(res)
 unless $outted
     if ARGV[1] && ARGV[1][1] == "d"
-        p res
+        p to_print
     else
-        puts res
+        puts to_print
     end
 end
+
+# p $vars
