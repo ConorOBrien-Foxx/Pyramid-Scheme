@@ -146,7 +146,7 @@ $ops = {
     "<=>" => -> (a, b) { a <=> b },
     "out" => -> (*a) { $outted = true; a.each { |e| print e }; },
     "chr" => -> (a) { a.to_i.chr },
-    "arg" => -> (*a) { a.size == 1 ? ARGV[a] : a[0][a[1]] },
+    "arg" => -> (*a) { a.size == 1 ? ARGV[a[0]] : a[0][a[1]] },
     "#" => -> (a) { str_to_val a },
     "\"" => -> (a) { val_to_str a },
     "" => -> (*a) { unwrap a },
