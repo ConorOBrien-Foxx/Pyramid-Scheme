@@ -40,6 +40,8 @@ In a LISP-like language, this would be equivalent to `(A B)`. In a normal langua
 
 Equivalent to `(A B C)` or `A(B, C)`.
 
+_Note: Pyramids are evaluated depth-first; it is possible for certain Pyramids to be evaluated twice this way. See the third example for more info._
+
 That's the Crux of the language! Next, we'll learn about the commands available to the language.
 
 ## Commands
@@ -115,3 +117,17 @@ Here's an if-else statement for the variable `A` (prints `1` for truthy, `0` for
       ^-----
      /1\
      ---
+
+Here is an example of a Pyramid being evaluated twice, as it is the child of two different nodes.
+
+```
+     ^
+    /+\
+   ^---^
+  /+\ /*\
+ ^---^---^
+/1\ /3\ /4\
+--- --- ---
+```
+
+This is equivalent to (1 + **3**) + (**3** * 4) = 4 + 12 = 16.
