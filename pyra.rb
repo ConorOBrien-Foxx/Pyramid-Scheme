@@ -68,7 +68,7 @@ def triangle_from(lines, ptr_inds = nil)
     }
 end
 
-$vars = {"eps" => ""}
+$vars = {"eps" => "", "nil" => nil}
 $UNDEF = :UNDEF
 
 def parse(str)
