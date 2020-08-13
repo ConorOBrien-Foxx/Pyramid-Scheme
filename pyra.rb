@@ -68,7 +68,7 @@ def triangle_from(lines, ptr_inds = nil)
     }
 end
 
-$vars = {"eps" => "", "nil" => nil}
+$vars = {"eps" => ""}
 $UNDEF = :UNDEF
 
 def parse(str)
@@ -153,19 +153,24 @@ $ops = {
     "!" => -> (a) { falsey(a).to_i },
     "[" => -> (a, b) { a },
     "]" => -> (a, b) { b },
+    "nil" => -> (*a) { unwrap a; nil },
 }
 
 def eval_chain(chain)
-    if chain.is_a? String
-        return str_to_val chain
-    else
-        op, args = chain
-        if $uneval_ops.has_key? op
-            return $uneval_ops[op][*args]
-        end
-        raise "undefined operation `#{op}`" unless $ops.has_key? op
-        return sanatize $ops[op][*sanatize(args.map { |ch| eval_chain ch })]
+    op, args = chain
+    args = [] if args == nil # Set args to [] if chain was just a string
+    # Match against all possible operations
+    if $uneval_ops.has_key? op
+        return $uneval_ops[op][*args] rescue ArgumentError
     end
+    if $ops.has_key? op
+        return sanatize $ops[op][*sanatize(args.map { |ch| eval_chain ch })] rescue ArgumentError
+    end
+    # It is maybe a string?
+    if args.empty?
+        return str_to_val op
+    end
+    raise "undefined operation `#{op}`" # Finally blow up if not matched against anything
 end
 
 def sanatize(arg)
